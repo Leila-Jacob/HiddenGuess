@@ -1,0 +1,81 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: HiddenGuess/packages/frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            HiddenGuess/packages/frontend/package-lock.json
+
+      - name: Compute BASE_PATH from repository
+        id: base
+        run: |
+          REPO_FULL="$GITHUB_REPOSITORY"        # e.g. user/repo or org/repo
+          REPO_NAME="${REPO_FULL##*/}"          # repo
+          OWNER_NAME="${REPO_FULL%%/*}"         # user or org
+          if [[ "$REPO_NAME" == "${OWNER_NAME}.github.io" ]]; then
+            BASE_PATH=""
+          else
+            BASE_PATH="/${REPO_NAME}"
+          fi
+          echo "Resolved BASE_PATH='$BASE_PATH' for repo '$REPO_FULL'"
+          echo "base_path=$BASE_PATH" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies (frontend)
+        run: npm ci
+
+      - name: Build and export static site
+        env:
+          # Feed dynamic base path to Next.js config
+          BASE_PATH: ${{ steps.base.outputs.base_path }}
+          NODE_ENV: production
+        run: |
+          npm run export
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: HiddenGuess/packages/frontend/out
+
+  deploy:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+

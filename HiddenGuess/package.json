@@ -1,0 +1,24 @@
+
+
+{
+  "name": "hidden-guess",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "./scripts/dev.sh localhost",
+    "deploy:localhost": "./scripts/deploy.sh localhost",
+    "deploy:sepolia": "./scripts/deploy.sh sepolia",
+    "test": "./scripts/test.sh localhost",
+    "install:all": "npm install && cd packages/contracts && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
+
+
+
